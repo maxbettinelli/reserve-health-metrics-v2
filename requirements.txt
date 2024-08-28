@@ -59,5 +59,6 @@ urllib3==2.2.2
 watchdog==4.0.2
 wrapt==1.16.0
 yarl==1.9.4
-gql==3.4.0
 plotly==5.18.0
+gql
+requests-toolbelt
