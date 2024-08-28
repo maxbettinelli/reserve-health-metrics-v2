@@ -4,6 +4,7 @@ import altair as alt
 from dune_client.types import QueryParameter
 from dune_client.client import DuneClient
 from dune_client.query import QueryBase
+import time
 
 st.set_page_config(page_title="eUSD Price Peg", page_icon="📊")
 
@@ -57,19 +58,8 @@ def highlight_outliers(val):
             return f'background-color: {item["color"]}'
     return ''
 
-# Fetch data from Dune
-if st.sidebar.button("Fetch Latest Data"):
-    with st.spinner("Fetching data from Dune Analytics..."):
-        try:
-            df = fetch_dune_data(query_id, timeperiod)
-            st.session_state.data = df
-            st.success("Data fetched successfully!")
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-
-# Process and display data
-if 'data' in st.session_state:
-    df = st.session_state.data
+# Function to display the main content
+def display_content(df):
     df['hour'] = pd.to_datetime(df['hour'])
     df_long = df.melt(
         id_vars='hour', 
@@ -102,16 +92,37 @@ if 'data' in st.session_state:
         monthly_avg_df = df_filtered.set_index('hour').groupby('network').resample('M')['avg_price'].mean().unstack(level=0)
         monthly_avg_df.index = monthly_avg_df.index.strftime('%B')
 
-        # Calculate and append average row
         average_row = monthly_avg_df.mean().to_frame().T
         average_row.index = ['Average']
         monthly_avg_df_with_avg = pd.concat([monthly_avg_df, average_row])
 
-        # Display table with conditional formatting
         st.subheader("Monthly Averages")
         st.dataframe(monthly_avg_df_with_avg.style.applymap(highlight_outliers), use_container_width=True)
     except Exception as e:
         st.error(f"An error occurred while calculating monthly averages: {str(e)}")
+
+# Main execution
+if 'data' not in st.session_state:
+    with st.spinner("Loading initial data... This may take up to 90 seconds."):
+        try:
+            df = fetch_dune_data(query_id, timeperiod)
+            st.session_state.data = df
+        except Exception as e:
+            st.error(f"An error occurred while fetching initial data: {str(e)}")
+
+if 'data' in st.session_state:
+    display_content(st.session_state.data)
+
+# Fetch new data button
+if st.sidebar.button("Fetch Latest Data"):
+    with st.spinner("Fetching latest data from Dune Analytics..."):
+        try:
+            df = fetch_dune_data(query_id, timeperiod)
+            st.session_state.data = df
+            st.success("Data fetched successfully!")
+            st.experimental_rerun()
+        except Exception as e:
+            st.error(f"Please reload, an error occurred: {str(e)}")
 
 # Custom legend
 st.sidebar.subheader("Price Range Legend")
