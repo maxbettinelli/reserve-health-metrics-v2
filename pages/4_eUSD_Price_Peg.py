@@ -149,3 +149,8 @@ for network, color in network_colors.items():
         f'</div>',
         unsafe_allow_html=True
     )
+
+# Footer
+st.markdown("---")
+st.markdown("Data provided by Dune Analytics")
+
