@@ -9,7 +9,11 @@ import time
 st.set_page_config(page_title="eUSD Price Peg", page_icon="📊")
 
 # Retrieve Dune API key from Streamlit secrets
-dune_api_key = st.secrets["DUNE_API_KEY"]
+try:
+    dune_api_key = st.secrets["DUNE_API_KEY"]
+except KeyError:
+    st.error("Dune API Key not found. Please set the DUNE_API_KEY secret.")
+    st.stop()
 
 # Function to fetch data from Dune Analytics
 @st.cache_data(ttl=3600)
