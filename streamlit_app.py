@@ -31,7 +31,7 @@ st.markdown("""
 
 st.image('reserve-blue.png', width=250)
 st.markdown("---")
-st.title("Health Metrics Dashboard")
+st.subheader("Health Metrics Dashboard")
 st.markdown("---")
 
 # Define a function to create a blue button-like link
