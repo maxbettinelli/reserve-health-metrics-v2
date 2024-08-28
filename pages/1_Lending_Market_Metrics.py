@@ -248,39 +248,6 @@ def process_market_data(response):
 
     return df
 
-# Streamlit app
-st.set_page_config(layout="wide")
-st.title("Morpho Lending Market Metrics")
-
-# Add a loading indicator
-with st.spinner("Loading data..."):
-    # Fetch and process data
-    response_liquidations = fetch_liquidation_data()
-    df_liquidations = process_liquidation_data(response_liquidations)
-
-    market_response = fetch_market_data()
-    df_market = process_market_data(market_response)
-
-# Morpho Borrowers Data
-st.header("Morpho Borrowers Data")
-
-# Data for borrowers (this is static, so we can keep it as is)
-data = {
-    "Collateral": [
-        "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
-        "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
-    ],
-    "Unique Suppliers or Borrowers": [29, 6, 6, 2, 2, 101, 15, 10, 11, 10],
-    "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
-}
-
-df_borrowers = pd.DataFrame(data)
-
-# Split the DataFrame into Mainnet (ETH) and Base
-df_eth = df_borrowers[df_borrowers['Network'] == 'ETH']
-df_base = df_borrowers[df_borrowers['Network'] == 'Base']
-
-# Function to create borrowers chart
 @st.cache_data
 def create_borrowers_chart(df, network):
     y_axis_limit = 105
@@ -304,23 +271,9 @@ def create_borrowers_chart(df, network):
     
     return chart
 
-# Display the charts side by side in Streamlit
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader('Mainnet')
-    st.altair_chart(create_borrowers_chart(df_eth, 'ETH'), use_container_width=True)
-with col2:
-    st.subheader('Base')
-    st.altair_chart(create_borrowers_chart(df_base, 'Base'), use_container_width=True)
 
-# Current Markets
-st.header("Current Markets")
-st.dataframe(df_market)
-
-# Create visualizations
 @st.cache_data
 def create_market_visualizations(df_market):
-    # Create a bar chart for Supply, Borrow, and Total Liquidity
     fig = go.Figure()
 
     fig.add_trace(go.Bar(
@@ -373,16 +326,6 @@ def create_market_visualizations(df_market):
 
     return fig, fig_supply, fig_scatter
 
-# Display visualizations
-fig, fig_supply, fig_scatter = create_market_visualizations(df_market)
-st.plotly_chart(fig)
-st.plotly_chart(fig_supply)
-st.plotly_chart(fig_scatter)
-
-# Morpho Liquidations Section
-st.header("Morpho Liquidations Data")
-
-# Plot total liquidations by market
 @st.cache_data
 def create_liquidations_chart(df_liquidations):
     fig_liquidations = px.bar(
@@ -394,30 +337,98 @@ def create_liquidations_chart(df_liquidations):
     )
     return fig_liquidations
 
-st.plotly_chart(create_liquidations_chart(df_liquidations))
+# Streamlit app
+st.set_page_config(layout="wide")
+st.title("Morpho Lending Market Metrics")
 
-# Dropdown to select a market
-selected_market = st.selectbox(
-    "Select a Market to View Liquidations",
-    options=df_liquidations['market'].unique()
-)
+# Initialize session state
+if 'data_loaded' not in st.session_state:
+    st.session_state.data_loaded = False
 
-# Filter the DataFrame based on the selected market
-filtered_df = df_liquidations[df_liquidations['market'] == selected_market]
+# Lazy loading of data
+if not st.session_state.data_loaded:
+    with st.spinner("Loading market data..."):
+        # Fetch and process data
+        response_liquidations = fetch_liquidation_data()
+        df_liquidations = process_liquidation_data(response_liquidations)
 
-len_liquidations = len(filtered_df)
-st.subheader(f"{len_liquidations} All-Time Liquidation(s) for {selected_market}")
-st.dataframe(filtered_df)
+        market_response = fetch_market_data()
+        df_market = process_market_data(market_response)
 
-# Sidebar: Download market data as CSV
-csv = df_market.to_csv(index=True)
-st.sidebar.download_button(
-    label="Download Market Data CSV",
-    data=csv,
-    file_name='morpho_market_data.csv',
-    mime='text/csv'
-)
+        st.session_state.df_liquidations = df_liquidations
+        st.session_state.df_market = df_market
+        st.session_state.data_loaded = True
 
-# Footer
-st.markdown("---")
-st.markdown("Data provided by Morpho Blue API")
+# Display content after data is loaded
+if st.session_state.data_loaded:
+    # Morpho Borrowers Data
+    st.header("Morpho Borrowers Data")
+
+    # Data for borrowers (this is static, so we can keep it as is)
+    data = {
+        "Collateral": [
+            "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
+            "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
+        ],
+        "Unique Suppliers or Borrowers": [29, 6, 6, 2, 2, 101, 15, 10, 11, 10],
+        "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
+    }
+
+    df_borrowers = pd.DataFrame(data)
+
+    # Split the DataFrame into Mainnet (ETH) and Base
+    df_eth = df_borrowers[df_borrowers['Network'] == 'ETH']
+    df_base = df_borrowers[df_borrowers['Network'] == 'Base']
+
+    # Display the charts side by side in Streamlit
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader('Mainnet')
+        st.altair_chart(create_borrowers_chart(df_eth, 'ETH'), use_container_width=True)
+    with col2:
+        st.subheader('Base')
+        st.altair_chart(create_borrowers_chart(df_base, 'Base'), use_container_width=True)
+
+    # Current Markets
+    st.header("Current Markets")
+    st.dataframe(st.session_state.df_market)
+
+    # Display visualizations
+    fig, fig_supply, fig_scatter = create_market_visualizations(st.session_state.df_market)
+    st.plotly_chart(fig)
+    st.plotly_chart(fig_supply)
+    st.plotly_chart(fig_scatter)
+
+    # Morpho Liquidations Section
+    st.header("Morpho Liquidations Data")
+
+    st.plotly_chart(create_liquidations_chart(st.session_state.df_liquidations))
+
+    # Dropdown to select a market
+    selected_market = st.selectbox(
+        "Select a Market to View Liquidations",
+        options=st.session_state.df_liquidations['market'].unique()
+    )
+
+    # Filter the DataFrame based on the selected market
+    filtered_df = st.session_state.df_liquidations[st.session_state.df_liquidations['market'] == selected_market]
+
+    len_liquidations = len(filtered_df)
+    st.subheader(f"{len_liquidations} All-Time Liquidation(s) for {selected_market}")
+    st.dataframe(filtered_df)
+
+    # Sidebar: Download market data as CSV
+    csv = st.session_state.df_market.to_csv(index=True)
+    st.sidebar.download_button(
+        label="Download Market Data CSV",
+        data=csv,
+        file_name='morpho_market_data.csv',
+        mime='text/csv'
+    )
+
+    # Footer
+    st.markdown("---")
+    st.markdown("Data provided by Morpho Blue API")
+else:
+    st.info("Loading market data. Please wait...")
+
