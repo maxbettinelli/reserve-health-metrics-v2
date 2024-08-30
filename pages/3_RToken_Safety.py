@@ -54,7 +54,7 @@ if st.checkbox('Formula Details'):
 
 st.markdown("---")
 
-if st.checkbox('View Collateral Liquidity Charts', value=True):
+if st.checkbox('View Collateral Liquidity Charts', value=False):
     st.subheader('Collateral Liquidity on DEXs')
     col1, col2 = st.columns(2)
     with col1:

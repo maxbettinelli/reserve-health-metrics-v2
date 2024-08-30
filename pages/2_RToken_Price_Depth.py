@@ -72,6 +72,5 @@ st.dataframe(styled_df, use_container_width=True)
 
 # Add some explanatory text
 st.markdown("""
-This dashboard shows the liquidity of various RTokens over time.
 - The chart measures the amount of an RToken you can swap on a DEX Aggregator (Odos) in a single transaction before incurring a 0.5% price impact. 
 """)

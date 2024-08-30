@@ -364,7 +364,14 @@ if not st.session_state.data_loaded:
 
 # Display content after data is loaded
 if st.session_state.data_loaded:
+    fig, fig_supply, fig_scatter = create_market_visualizations(st.session_state.df_market)
+    st.plotly_chart(fig)
+    if st.checkbox('View Live Market Data', value=False):
+      st.header("Live Morpho Market Data")
+      st.dataframe(st.session_state.df_market)
     # Morpho Borrowers Data
+    st.markdown("---")
+
     st.header("Morpho Borrowers Data")
 
     # Data for borrowers (this is static, so we can keep it as is)
@@ -413,45 +420,45 @@ if st.session_state.data_loaded:
     with col2:
         st.subheader('Base')
         st.altair_chart(create_borrowers_chart(df_base, 'Base'), use_container_width=True)
-    st.subheader('Weekly Change in Open Positions')
-    st.altair_chart(create_borrowers_chart(df_delta, 'Weekly Change', is_delta=True), use_container_width=True)
 
+    if st.checkbox('View Weekly Change in Open Positions', value=False):
+      st.subheader('Weekly Change in Open Positions')
+      st.altair_chart(create_borrowers_chart(df_delta, 'Weekly Change', is_delta=True), use_container_width=True)
     # Current Markets
-    st.header("Current Markets")
-    st.dataframe(st.session_state.df_market)
+
+
+    st.markdown("---")
+    # Morpho Liquidations Section
+    if st.checkbox('Liquidation Info', value=False):
+      st.header("Morpho Liquidations Data")
+      st.plotly_chart(create_liquidations_chart(st.session_state.df_liquidations))
+
+      # Dropdown to select a market
+      selected_market = st.selectbox(
+          "Select a Market to View Liquidations",
+          options=st.session_state.df_liquidations['market'].unique()
+      )
+
+      # Filter the DataFrame based on the selected market
+      filtered_df = st.session_state.df_liquidations[st.session_state.df_liquidations['market'] == selected_market]
+
+      len_liquidations = len(filtered_df)
+      st.subheader(f"{len_liquidations} All-Time Liquidation(s) for {selected_market}")
+      st.dataframe(filtered_df)
+
+      # Sidebar: Download market data as CSV
+      csv = st.session_state.df_market.to_csv(index=True)
+      st.sidebar.download_button(
+          label="Download Market Data CSV",
+          data=csv,
+          file_name='morpho_market_data.csv',
+          mime='text/csv'
+      )
 
     # Display visualizations
-    fig, fig_supply, fig_scatter = create_market_visualizations(st.session_state.df_market)
-    st.plotly_chart(fig)
-    st.plotly_chart(fig_supply)
-    st.plotly_chart(fig_scatter)
-
-    # Morpho Liquidations Section
-    st.header("Morpho Liquidations Data")
-
-    st.plotly_chart(create_liquidations_chart(st.session_state.df_liquidations))
-
-    # Dropdown to select a market
-    selected_market = st.selectbox(
-        "Select a Market to View Liquidations",
-        options=st.session_state.df_liquidations['market'].unique()
-    )
-
-    # Filter the DataFrame based on the selected market
-    filtered_df = st.session_state.df_liquidations[st.session_state.df_liquidations['market'] == selected_market]
-
-    len_liquidations = len(filtered_df)
-    st.subheader(f"{len_liquidations} All-Time Liquidation(s) for {selected_market}")
-    st.dataframe(filtered_df)
-
-    # Sidebar: Download market data as CSV
-    csv = st.session_state.df_market.to_csv(index=True)
-    st.sidebar.download_button(
-        label="Download Market Data CSV",
-        data=csv,
-        file_name='morpho_market_data.csv',
-        mime='text/csv'
-    )
+    if st.checkbox('Other Visualizations', value=False):
+      st.plotly_chart(fig_supply)
+      st.plotly_chart(fig_scatter)
 
     # Footer
     st.markdown("---")
