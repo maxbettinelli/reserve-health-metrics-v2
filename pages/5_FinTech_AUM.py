@@ -87,15 +87,15 @@ latest_data = df.iloc[0]
 month_ago_data = df[df['date'] <= month_ago_date].iloc[0]
 
 # Display current balances and monthly changes
+st.subheader('FinTech eUSD Balances')
 col1, col2, col3 = st.columns(3)
-
 def display_company_stats(column, company, current, month_ago):
     with column:
-        st.markdown(f"### {company} Balance:")
-        st.markdown(f"## {format_currency(current)} eUSD")
+        st.markdown(f"### {company}:")
+        st.markdown(f"## {format_currency(current)}")
         monthly_change = current - month_ago
-        change_color = "green" if monthly_change >= 0 else "red"
-        st.markdown(f'<span style="color:{change_color};">Monthly Change (30 days): {format_currency(monthly_change)} eUSD</span>', unsafe_allow_html=True)
+        #change_color = "green" if monthly_change >= 0 else "red"
+        st.markdown(f'<span>Monthly Change: {format_currency(monthly_change)}</span>', unsafe_allow_html=True)
 
 if selected_company in ["All", "Ugly Cash"]:
     display_company_stats(col1, "Ugly Cash", latest_data['ugly_cash_total'], month_ago_data['ugly_cash_total'])
@@ -111,6 +111,7 @@ month_ago_total_aum = month_ago_data['total_aum'] if selected_company == "All" e
     month_ago_data['ugly_cash_total'] if selected_company == "Ugly Cash" else month_ago_data['sentz_total']
 )
 display_company_stats(col3, "Total AUM", current_total_aum, month_ago_total_aum)
+st.markdown("---")
 
 # Option to view raw data
 if st.checkbox('View detailed FinTech Data', value=True):
