@@ -1,7 +1,11 @@
 import streamlit as st
+st.set_page_config(
+    page_title="Home",
+    page_icon="🏠",
+)
 
-# Set page config
-st.set_page_config(page_title="Health Metrics Dashboard", layout="wide")
+st.sidebar.header("Home")
+st.title("Home")
 
 # Custom CSS for minimal styling
 st.markdown("""
