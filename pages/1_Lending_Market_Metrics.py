@@ -252,8 +252,8 @@ def process_market_data(response):
 
 
 @st.cache_data
-def create_borrowers_chart(df, network):
-    y_axis_limit = 105
+def create_borrowers_chart(df, network, is_delta=False):
+    y_axis_limit = 120
     
     def color_condition(col):
         return alt.condition(
@@ -387,7 +387,19 @@ if st.session_state.data_loaded:
         "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
     }
 
+
+    # Hard-coded delta data
+    delta_data = {
+        "Collateral": [
+            "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
+            "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
+        ],
+        "Unique Suppliers or Borrowers": [6, 1, 0, 3, 0, 11, -3, 11, 2, -2],
+        "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
+    }
+    df_previous = pd.DataFrame(previous_8_22_data)
     df_borrowers = pd.DataFrame(data)
+    df_delta = pd.DataFrame(delta_data)
 
     # Split the DataFrame into Mainnet (ETH) and Base
     df_eth = df_borrowers[df_borrowers['Network'] == 'ETH']
@@ -401,6 +413,8 @@ if st.session_state.data_loaded:
     with col2:
         st.subheader('Base')
         st.altair_chart(create_borrowers_chart(df_base, 'Base'), use_container_width=True)
+    st.subheader('Weekly Change in Open Positions')
+    st.altair_chart(create_borrowers_chart(df_delta, 'Weekly Change', is_delta=True), use_container_width=True)
 
     # Current Markets
     st.header("Current Markets")
