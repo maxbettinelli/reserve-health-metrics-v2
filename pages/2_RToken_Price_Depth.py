@@ -15,11 +15,8 @@ def load_data():
 # Load the data
 df = load_data()
 
-# Title
-st.title("RToken Liquidity Analysis")
-
 # Create the line plot
-st.subheader("RToken Liquidity Over Time")
+st.title("RToken Price Depth")
 
 # Melt the DataFrame for plotting
 df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'], 
@@ -77,5 +74,4 @@ st.dataframe(styled_df, use_container_width=True)
 st.markdown("""
 This dashboard shows the liquidity of various RTokens over time.
 - The chart measures the amount of an RToken you can swap on a DEX Aggregator (Odos) in a single transaction before incurring a 0.5% price impact. 
-- This number serves us as a proxy for looking at overall DEX liquidity.
 """)
