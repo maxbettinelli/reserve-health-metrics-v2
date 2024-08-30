@@ -248,6 +248,9 @@ def process_market_data(response):
 
     return df
 
+
+
+
 @st.cache_data
 def create_borrowers_chart(df, network):
     y_axis_limit = 105
@@ -365,12 +368,22 @@ if st.session_state.data_loaded:
     st.header("Morpho Borrowers Data")
 
     # Data for borrowers (this is static, so we can keep it as is)
-    data = {
+    previous_8_22_data = {
         "Collateral": [
             "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
             "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
         ],
         "Unique Suppliers or Borrowers": [29, 6, 6, 2, 2, 101, 15, 10, 11, 10],
+        "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
+    }
+
+    # Data for borrowers as of 8/29
+    data = {
+        "Collateral": [
+            "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
+            "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
+        ],
+        "Unique Suppliers or Borrowers": [35, 7, 6, 5, 2, 112, 12, 21, 13, 8],
         "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
     }
 

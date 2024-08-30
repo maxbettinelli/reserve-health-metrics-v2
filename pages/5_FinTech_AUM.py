@@ -69,7 +69,7 @@ chart = alt.Chart(chart_data).mark_area().encode(
     x='date:T',
     y=alt.Y('balance:Q', stack='zero'),
     color=alt.Color('company:N', scale=alt.Scale(domain=['Ugly Cash', 'Sentz'],
-                                                 range=['#bf8700', '#0078bf'])),
+                                                 range=['#ff8452', '#6d38ff'])),
     tooltip=['date', 'company', 'balance']
 ).properties(
     width=800,
@@ -113,7 +113,7 @@ month_ago_total_aum = month_ago_data['total_aum'] if selected_company == "All" e
 display_company_stats(col3, "Total AUM", current_total_aum, month_ago_total_aum)
 
 # Option to view raw data
-if st.checkbox('View detailed FinTech Data', value=False):
+if st.checkbox('View detailed FinTech Data', value=True):
     st.dataframe(df)
 
 
