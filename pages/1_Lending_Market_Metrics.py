@@ -5,6 +5,79 @@ import plotly.express as px
 import plotly.graph_objs as go
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
+
+
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def get_morpho_suppliers_count():
+    # Setup the GraphQL client
+    transport = RequestsHTTPTransport(
+        url="https://blue-api.morpho.org/graphql",
+        verify=True,
+        retries=3,
+    )
+    client = Client(transport=transport, fetch_schema_from_transport=True)
+
+    # Query for Ethereum Mainnet
+    mainnet_query = gql("""
+    query {
+      vaultPositions(
+        first: 500
+        orderBy: Shares
+        orderDirection: Desc
+        where: { vaultAddress_in: ["0xc080f56504e0278828A403269DB945F6c6D6E014"] }
+      ) {
+        items {
+          shares
+          assets
+          assetsUsd
+          user {
+            address
+          }
+        }
+      }
+    }
+    """)
+
+    # Query for Base
+    base_query = gql("""
+    query {
+      vaultPositions(
+        first: 500
+        orderBy: Shares
+        orderDirection: Desc
+        where: { vaultAddress_in: ["0xbb819D845b573B5D7C538F5b85057160cfb5f313"] }
+      ) {
+        items {
+          shares
+          assets
+          assetsUsd
+          user {
+            address
+          }
+        }
+      }
+    }
+    """)
+
+    # Execute queries
+    mainnet_response = client.execute(mainnet_query)
+    base_response = client.execute(base_query)
+
+    # Count suppliers for Ethereum Mainnet
+    ethmainnet_suppliers = 0
+    for item in mainnet_response['vaultPositions']['items']:
+        if float(item['assetsUsd']) > 5:
+            ethmainnet_suppliers += 1
+
+    # Count suppliers for Base
+    base_suppliers = 0
+    for item in base_response['vaultPositions']['items']:
+        if float(item['assetsUsd']) > 5:
+            base_suppliers += 1
+
+    return ethmainnet_suppliers, base_suppliers
 
 # Use caching for data fetching and processing functions
 @st.cache_data(ttl=3600)  # Cache for 1 hour
@@ -21,6 +94,7 @@ def fetch_liquidation_data():
             "0x3a5bdf0be8d820c1303654b078b14f8fc6d715efaeca56cec150b934bdcbff31"
             "0xb5d424e4af49244b074790f1f2dc9c20df948ce291fc6bcc6b59149ecf91196d"
             "0xce89aeb081d719cd35cb1aafb31239c4dfd9c017b2fec26fc2e9a443461e9aea"
+            "0xdf6aa0df4eb647966018f324db97aea09d2a7dde0d3c0a72115e8b20d58ea81f"
           ]
           type_in: [MarketLiquidation]
         }
@@ -173,7 +247,8 @@ def process_liquidation_data(response):
         '0xf9ed1dba3b6ba1ede10e2115a9554e9c52091c9f1b1af21f9e0fecc855ee74bf': 'bsdETH/eUSD (Base)',
         '0x3a5bdf0be8d820c1303654b078b14f8fc6d715efaeca56cec150b934bdcbff31': 'hyUSD/eUSD (Base)',
         '0xb5d424e4af49244b074790f1f2dc9c20df948ce291fc6bcc6b59149ecf91196d': 'cbETH/eUSD (Base)',
-        '0xce89aeb081d719cd35cb1aafb31239c4dfd9c017b2fec26fc2e9a443461e9aea': 'wstETH/eUSD (Base)'
+        '0xce89aeb081d719cd35cb1aafb31239c4dfd9c017b2fec26fc2e9a443461e9aea': 'wstETH/eUSD (Base)',
+        '0xdf6aa0df4eb647966018f324db97aea09d2a7dde0d3c0a72115e8b20d58ea81f': 'bsdETH/WETH (Base)'
     }
 
     items = response['transactions']['items']
@@ -196,7 +271,7 @@ def process_market_data(response):
         '0x3a5bdf0be8d820c1303654b078b14f8fc6d715efaeca56cec150b934bdcbff31': 'hyUSD/eUSD (Base)',
         '0xb5d424e4af49244b074790f1f2dc9c20df948ce291fc6bcc6b59149ecf91196d': 'cbETH/eUSD (Base)',
         '0xce89aeb081d719cd35cb1aafb31239c4dfd9c017b2fec26fc2e9a443461e9aea': 'wstETH/eUSD (Base)',
-        '0xdf6aa0df4eb647966018f324db97aea09d2a7dde0d3c0a72115e8b20d58ea81f': 'bsdETH/WETH'
+        '0xdf6aa0df4eb647966018f324db97aea09d2a7dde0d3c0a72115e8b20d58ea81f': 'bsdETH/WETH (Base)'
     }
 
     market_data = {}
@@ -219,7 +294,7 @@ def process_market_data(response):
 
         reallocatable_liquidity = float(market['reallocatableLiquidityAssets']) / 10**18
 
-        if market_name == 'bsdETH/WETH':
+        if market_name == 'bsdETH/WETH (Base)':
             reallocatable_liquidity *= bsdETH_price
         if market_name == 'ETH+/WETH':
             reallocatable_liquidity *= ETHplus_price
@@ -240,40 +315,157 @@ def process_market_data(response):
 
     df = pd.DataFrame(market_data).T
 
-    if 'bsdETH/WETH' in df.index:
-        df.loc['bsdETH/WETH', 'Collateral USD'] *= bsdETH_price
+    # if 'bsdETH/WETH' in df.index:
+    #     df.loc['bsdETH/WETH', 'Collateral USD'] *= bsdETH_price
 
     numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
     df[numeric_columns] = df[numeric_columns].round(4)
 
     return df
 
+#data for the borrows
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def fetch_market_positions():
+    query_MarketPositions = gql("""
+    query {
+      marketPositions(
+        first:1000
+        orderBy: SupplyShares
+        orderDirection: Desc
+        where: {
+          marketUniqueKey_in: [
+            "0x3f4d007982a480dd99052c05d811cf6838ce61b2a2be8dc52fca107f783d1f15"
+            "0x461da96754b33fec844fc5e5718bf24298a2c832d8216c5ffd17a5230548f01f"
+            "0x6029eea874791e01e2f3ce361f2e08839cd18b1e26eea6243fa3e43fe8f6fa23"
+            "0xf9ed1dba3b6ba1ede10e2115a9554e9c52091c9f1b1af21f9e0fecc855ee74bf"
+            "0x3a5bdf0be8d820c1303654b078b14f8fc6d715efaeca56cec150b934bdcbff31"
+            "0xb5d424e4af49244b074790f1f2dc9c20df948ce291fc6bcc6b59149ecf91196d"
+            "0xce89aeb081d719cd35cb1aafb31239c4dfd9c017b2fec26fc2e9a443461e9aea"
+            "0x9ec52d7195bafeba7137fa4d707a0f674a04a6d658c9066bcdbebc6d81eb0011"
+            "0xdf6aa0df4eb647966018f324db97aea09d2a7dde0d3c0a72115e8b20d58ea81f"
+          ]
+        }
+      ) {
+        items {
+          supplyShares
+          supplyAssets
+          supplyAssetsUsd
+          borrowShares
+          borrowAssets
+          borrowAssetsUsd
+          collateral
+          collateralUsd
+          market {
+            uniqueKey
+            loanAsset {
+              address
+              symbol
+            }
+            collateralAsset {
+              address
+              symbol
+            }
+          }
+          user {
+            address
+          }
+        }
+      }
+    }
+    """)
+
+    transport = RequestsHTTPTransport(
+        url="https://blue-api.morpho.org/graphql",
+        verify=True,
+        retries=3,
+    )
+
+    client = Client(transport=transport, fetch_schema_from_transport=True)
+    return client.execute(query_MarketPositions)
+
+@st.cache_data
+def process_market_positions(response):
+    from collections import defaultdict
+
+    rename_dict = {
+        '0x3f4d007982a480dd99052c05d811cf6838ce61b2a2be8dc52fca107f783d1f15': 'ETH+/eUSD',
+        '0x461da96754b33fec844fc5e5718bf24298a2c832d8216c5ffd17a5230548f01f': 'WBTC/eUSD',
+        '0x6029eea874791e01e2f3ce361f2e08839cd18b1e26eea6243fa3e43fe8f6fa23': 'wstETH/eUSD',
+        '0x9ec52d7195bafeba7137fa4d707a0f674a04a6d658c9066bcdbebc6d81eb0011': 'ETH+/WETH',
+        '0xf9ed1dba3b6ba1ede10e2115a9554e9c52091c9f1b1af21f9e0fecc855ee74bf': 'bsdETH/eUSD (Base)',
+        '0x3a5bdf0be8d820c1303654b078b14f8fc6d715efaeca56cec150b934bdcbff31': 'hyUSD/eUSD (Base)',
+        '0xb5d424e4af49244b074790f1f2dc9c20df948ce291fc6bcc6b59149ecf91196d': 'cbETH/eUSD (Base)',
+        '0xce89aeb081d719cd35cb1aafb31239c4dfd9c017b2fec26fc2e9a443461e9aea': 'wstETH/eUSD (Base)',
+        '0xdf6aa0df4eb647966018f324db97aea09d2a7dde0d3c0a72115e8b20d58ea81f': 'bsdETH/WETH (Base)'
+    }
+
+    totals = defaultdict(lambda: {
+        "totalSupplyAssets": 0,
+        "totalSupplyAssetsUsd": 0,
+        "totalBorrowAssets": 0,
+        "totalBorrowAssetsUsd": 0,
+        "totalCollateral": 0,
+        "totalCollateralUsd": 0,
+        "uniqueBorrowers": set(),
+        "uniqueInteractions": set(),
+        "collateralSymbol": ""
+    })
+
+    for item in response['marketPositions']['items']:
+        market_key = item['market']['uniqueKey']
+        totals[market_key]["totalSupplyAssets"] += (float(item['supplyAssets']) / 10 ** 18)
+        totals[market_key]["totalSupplyAssetsUsd"] += item['supplyAssetsUsd']
+        totals[market_key]["totalBorrowAssets"] += (float(item['borrowAssets']) / 10 ** 18)
+        totals[market_key]["totalBorrowAssetsUsd"] += item['borrowAssetsUsd']
+        totals[market_key]["totalCollateral"] += float(item['collateral']) / 10 ** 18
+        totals[market_key]["totalCollateralUsd"] += item['collateralUsd'] or 0
+        
+        if not totals[market_key]["collateralSymbol"]:
+            totals[market_key]["collateralSymbol"] = item['market']['collateralAsset']['symbol']
+        
+        user_address = item['user']['address']
+        if float(item['borrowAssetsUsd']) > 5:
+            totals[market_key]["uniqueBorrowers"].add(user_address)
+        if float(item['supplyAssetsUsd']) >= 0 or float(item['borrowAssetsUsd']) >= 0:
+            totals[market_key]["uniqueInteractions"].add(user_address)
+
+    final_results = {}
+    for market_key, data in totals.items():
+        market_name = rename_dict.get(market_key, market_key)
+        final_results[market_name] = {
+            "Total Supply": data["totalSupplyAssetsUsd"],
+            "Total Borrowed": data["totalBorrowAssetsUsd"],
+            "Available Liquidity": data["totalSupplyAssetsUsd"] - data["totalBorrowAssetsUsd"],
+            "Utilization": data["totalBorrowAssetsUsd"] / data["totalSupplyAssetsUsd"] if data["totalSupplyAssetsUsd"] != 0 else 0,
+            "Current Borrowers": len(data["uniqueBorrowers"]),
+            "Total Collateral": data["totalCollateral"],
+            "Total Collateral USD": data["totalCollateralUsd"],
+            "Collateral Asset": data["collateralSymbol"]
+        }
+
+    return pd.DataFrame(final_results).T
+
 
 
 
 @st.cache_data
-def create_borrowers_chart(df, network, is_delta=False):
-    y_axis_limit = 120
-    
-    def color_condition(col):
-        return alt.condition(
-            alt.datum.Collateral == f'Gauntlet eUSD Core ({col})',
+def create_borrowers_chart(df, network):
+    chart = alt.Chart(df).mark_bar().encode(
+        x=alt.X('Market:N', sort='-y', axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y('Current Borrowers:Q', title='Number of Users'),
+        color=alt.condition(
+            alt.FieldOneOfPredicate(field='Market', oneOf=['Gauntlet eUSD Core (ETH)', 'Gauntlet eUSD Core (Base)']),
             alt.value('blue'),
             alt.value('red')
-        )
-    
-    chart = alt.Chart(df).mark_bar().encode(
-        x=alt.X('Collateral:N', sort=df['Collateral'].tolist(), axis=alt.Axis(labelAngle=-45), title=network),
-        y=alt.Y('Unique Suppliers or Borrowers:Q', title='Open Supply or Borrow Positions', scale=alt.Scale(domain=[0, y_axis_limit])),
-        color=color_condition(network),
-        tooltip=['Collateral', 'Network', 'Unique Suppliers or Borrowers']
+        ),
+        tooltip=['Market', 'Current Borrowers']
     ).properties(
         width=300,
-        height=400
+        height=400,
+        title=f'{network} Markets'
     ).interactive()
     
     return chart
-
 
 @st.cache_data
 def create_market_visualizations(df_market):
@@ -358,6 +550,10 @@ if not st.session_state.data_loaded:
         market_response = fetch_market_data()
         df_market = process_market_data(market_response)
 
+        market_positions_response = fetch_market_positions()
+        df_market_positions = process_market_positions(market_positions_response)
+        st.session_state.df_market_positions = df_market_positions
+
         st.session_state.df_liquidations = df_liquidations
         st.session_state.df_market = df_market
         st.session_state.data_loaded = True
@@ -372,60 +568,94 @@ if st.session_state.data_loaded:
     # Morpho Borrowers Data
     st.markdown("---")
 
-    st.header("Morpho Borrowers Data")
+    # # Data for borrowers (this is static, so we can keep it as is)
+    # previous_8_22_data = {
+    #     "Collateral": [
+    #         "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
+    #         "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
+    #     ],
+    #     "Unique Suppliers or Borrowers": [29, 6, 6, 2, 2, 101, 15, 10, 11, 10],
+    #     "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
+    # }
 
-    # Data for borrowers (this is static, so we can keep it as is)
-    previous_8_22_data = {
-        "Collateral": [
-            "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
-            "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
-        ],
-        "Unique Suppliers or Borrowers": [29, 6, 6, 2, 2, 101, 15, 10, 11, 10],
-        "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
-    }
-
-    # Data for borrowers as of 8/29
-    data = {
-        "Collateral": [
-            "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
-            "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
-        ],
-        "Unique Suppliers or Borrowers": [35, 7, 6, 5, 2, 112, 12, 21, 13, 8],
-        "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
-    }
+    # # Data for borrowers as of 8/29
+    # data = {
+    #     "Collateral": [
+    #         "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
+    #         "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
+    #     ],
+    #     "Unique Suppliers or Borrowers": [35, 7, 6, 5, 2, 112, 12, 21, 13, 8],
+    #     "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
+    # }
 
 
-    # Hard-coded delta data
-    delta_data = {
-        "Collateral": [
-            "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
-            "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
-        ],
-        "Unique Suppliers or Borrowers": [6, 1, 0, 3, 0, 11, -3, 11, 2, -2],
-        "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
-    }
-    df_previous = pd.DataFrame(previous_8_22_data)
-    df_borrowers = pd.DataFrame(data)
-    df_delta = pd.DataFrame(delta_data)
+    # # Hard-coded delta data
+    # delta_data = {
+    #     "Collateral": [
+    #         "Gauntlet eUSD Core (ETH)", "wstETH/eUSD", "WBTC/eUSD", "ETH+/eUSD", "ETH+/WETH",
+    #         "Gauntlet eUSD Core (Base)", "cbETH/eUSD (Base)", "hyUSD/eUSD (Base)", "bsdETH/eUSD (Base)", "wstETH/eUSD (Base)"
+    #     ],
+    #     "Unique Suppliers or Borrowers": [6, 1, 0, 3, 0, 11, -3, 11, 2, -2],
+    #     "Network": ["ETH", "ETH", "ETH", "ETH", "ETH", "Base", "Base", "Base", "Base", "Base"]
+    # }
+    
+    # df_previous = pd.DataFrame(previous_8_22_data)
+    # df_borrowers = pd.DataFrame(data)
+    # df_delta = pd.DataFrame(delta_data)
+
+    # # Split the DataFrame into Mainnet (ETH) and Base
+    # df_eth = df_borrowers[df_borrowers['Network'] == 'ETH']
+    # df_base = df_borrowers[df_borrowers['Network'] == 'Base']
+
+    # # Display the charts side by side in Streamlit
+    # col1, col2 = st.columns(2)
+    # with col1:
+    #     st.subheader('Mainnet')
+    #     st.altair_chart(create_borrowers_chart(df_eth, 'ETH'), use_container_width=True)
+    # with col2:
+    #     st.subheader('Base')
+    #     st.altair_chart(create_borrowers_chart(df_base, 'Base'), use_container_width=True)
+
+    # if st.checkbox('View Weekly Change in Open Positions', value=False):
+    #   st.subheader('Weekly Change in Open Positions')
+    #   st.altair_chart(create_borrowers_chart(df_delta, 'Weekly Change', is_delta=True), use_container_width=True)
+
+      
+    # Current Markets
+if st.session_state.data_loaded:
+    # ... [existing visualizations]
+
+    st.subheader("Morpho Borrowers and Suppliers Data")
+
+    # Get supplier counts
+    ethmainnet_suppliers, base_suppliers = get_morpho_suppliers_count()
+
+    # Process the market positions data
+    df_positions = st.session_state.df_market_positions.reset_index()
+    df_positions = df_positions.rename(columns={'index': 'Market'})
+    
+
+    # Add supplier data to the dataframe
+    new_rows = pd.DataFrame([
+        {'Market': 'Gauntlet eUSD Core (ETH)', 'Current Borrowers': ethmainnet_suppliers},
+        {'Market': 'Gauntlet eUSD Core (Base)', 'Current Borrowers': base_suppliers}
+    ])
+    df_positions = pd.concat([df_positions, new_rows], ignore_index=True)
 
     # Split the DataFrame into Mainnet (ETH) and Base
-    df_eth = df_borrowers[df_borrowers['Network'] == 'ETH']
-    df_base = df_borrowers[df_borrowers['Network'] == 'Base']
+    df_eth = df_positions[~df_positions['Market'].str.contains('Base')]
+    df_base = df_positions[df_positions['Market'].str.contains('Base')]
 
     # Display the charts side by side in Streamlit
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader('Mainnet')
-        st.altair_chart(create_borrowers_chart(df_eth, 'ETH'), use_container_width=True)
+        # st.subheader('ETH Mainnet')
+        st.altair_chart(create_borrowers_chart(df_eth, 'ETH Mainnet'), use_container_width=True)
+        st.write(f"Total Mainnet Suppliers in Gauntlet eUSD Core: {ethmainnet_suppliers}")
     with col2:
-        st.subheader('Base')
+        # st.subheader('Base')
         st.altair_chart(create_borrowers_chart(df_base, 'Base'), use_container_width=True)
-
-    if st.checkbox('View Weekly Change in Open Positions', value=False):
-      st.subheader('Weekly Change in Open Positions')
-      st.altair_chart(create_borrowers_chart(df_delta, 'Weekly Change', is_delta=True), use_container_width=True)
-    # Current Markets
-
+        st.write(f"Total Base Suppliers in Gauntlet eUSD Core: {base_suppliers}")
 
     st.markdown("---")
     # Morpho Liquidations Section
@@ -446,14 +676,6 @@ if st.session_state.data_loaded:
       st.subheader(f"{len_liquidations} All-Time Liquidation(s) for {selected_market}")
       st.dataframe(filtered_df)
 
-      # Sidebar: Download market data as CSV
-      csv = st.session_state.df_market.to_csv(index=True)
-      st.sidebar.download_button(
-          label="Download Market Data CSV",
-          data=csv,
-          file_name='morpho_market_data.csv',
-          mime='text/csv'
-      )
 
     # Display visualizations
     if st.checkbox('Other Visualizations', value=False):

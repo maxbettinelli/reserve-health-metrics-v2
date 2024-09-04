@@ -29,9 +29,8 @@ def fetch_dune_data(query_id, timeperiod):
 st.title("eUSD Price Peg")
 
 # Sidebar for user input
-st.sidebar.header("Settings")
 query_id = 3950965  # Your specific query ID
-timeperiod = st.sidebar.selectbox("Select Time Period", ["day", "week", "month"], index=0)
+timeperiod = "day"
 
 # Define the color scheme
 network_colors = {
@@ -116,27 +115,7 @@ if 'data' not in st.session_state:
 if 'data' in st.session_state:
     display_content(st.session_state.data)
 
-# Fetch new data button
-if st.sidebar.button("Fetch Latest Data"):
-    with st.spinner("Fetching latest data from Dune Analytics..."):
-        try:
-            df = fetch_dune_data(query_id, timeperiod)
-            st.session_state.data = df
-            st.success("Data fetched successfully!")
-            st.rerun()
-        except Exception as e:
-            st.error(f"An error occurred while fetching data: {str(e)}")
-
-# Custom legend
-st.sidebar.subheader("Price Range Legend")
-for item in legend_data:
-    st.sidebar.markdown(
-        f'<div style="display: flex; align-items: center;">'
-        f'<div style="width: 20px; height: 20px; background-color: {item["color"]}; margin-right: 10px;"></div>'
-        f'<div>{item["range"][0]} - {item["range"][1]}: {item["description"]}</div>'
-        f'</div>',
-        unsafe_allow_html=True
-    )
+st.sidebar.subheader("Legend")
 
 # Network color legend
 st.sidebar.subheader("Network Colors")
@@ -148,6 +127,18 @@ for network, color in network_colors.items():
         f'</div>',
         unsafe_allow_html=True
     )
+st.sidebar.markdown('---')
+# Custom legend
+st.sidebar.subheader("Price Range")
+for item in legend_data:
+    st.sidebar.markdown(
+        f'<div style="display: flex; align-items: center;">'
+        f'<div style="width: 20px; height: 20px; background-color: {item["color"]}; margin-right: 10px;"></div>'
+        f'<div>{item["range"][0]} - {item["range"][1]}: {item["description"]}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+st.sidebar.markdown('---')
 
 # Footer
 st.markdown("---")

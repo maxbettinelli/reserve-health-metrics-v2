@@ -3,17 +3,18 @@ import streamlit as st
 
 todays_date = 'Data: August 29th'
 last_weeks_date = 'Data: August 22nd'
-df = pd.read_csv('rtoken_safety.csv')
+df = pd.read_csv('rtoken_safety.csv').round(2)
+
 
 # Define a function to highlight values under 1 with red, with alpha of .1
 def highlight_values(val):
-    if val < 1:
+    if pd.api.types.is_number(val) and val < 1:
         return 'background-color: rgba(255, 0, 0, 0.1)'  # Red with alpha of .1
     return ''
 
 # Apply the highlighting to the DataFrame
-styled_df = df.style.applymap(highlight_values, subset=["8/29", "8/22", "8/16"])
-
+numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+styled_df = df.style.applymap(highlight_values, subset=numeric_columns)
 # Streamlit app
 st.set_page_config(layout="wide")
 
