@@ -32,11 +32,6 @@ st.title("eUSD Price Peg")
 st.sidebar.header("Settings")
 query_id = 3950965  # Your specific query ID
 timeperiod = st.sidebar.selectbox("Select Time Period", ["day", "week", "month"], index=0)
-networks = st.sidebar.multiselect(
-    "Select Networks",
-    ["Ethereum", "Base", "Arbitrum"],
-    default=["Ethereum", "Base", "Arbitrum"]
-)
 
 # Define the color scheme
 network_colors = {
@@ -77,13 +72,17 @@ def display_content(df):
         'avg_price_arbitrum': 'Arbitrum'
     })
     df_long['avg_price'] = pd.to_numeric(df_long['avg_price'], errors='coerce')
-    df_filtered = df_long[df_long['network'].isin(networks)]
 
-    # Create Altair chart
-    chart = alt.Chart(df_filtered).mark_line().encode(
+    # Create Altair chart with selection
+    selection = alt.selection_point(fields=['network'], bind='legend')
+    
+    chart = alt.Chart(df_long).mark_line().encode(
         x='hour:T',
         y=alt.Y('avg_price:Q', scale=alt.Scale(domain=[0.985, 1.015]), title='Average Price'),
         color=alt.Color('network:N', scale=alt.Scale(domain=list(network_colors.keys()), range=list(network_colors.values()))),
+        opacity=alt.condition(selection, alt.value(1), alt.value(0.2))
+    ).add_selection(
+        selection
     ).properties(
         width=800,
         height=400
@@ -93,7 +92,7 @@ def display_content(df):
 
     # Monthly average table
     try:
-        monthly_avg_df = df_filtered.set_index('hour').groupby('network').resample('M')['avg_price'].mean().unstack(level=0)
+        monthly_avg_df = df_long.set_index('hour').groupby('network').resample('M')['avg_price'].mean().unstack(level=0)
         monthly_avg_df.index = monthly_avg_df.index.strftime('%B')
 
         average_row = monthly_avg_df.mean().to_frame().T
@@ -124,9 +123,9 @@ if st.sidebar.button("Fetch Latest Data"):
             df = fetch_dune_data(query_id, timeperiod)
             st.session_state.data = df
             st.success("Data fetched successfully!")
-            st.experimental_rerun()
+            st.rerun()
         except Exception as e:
-            st.error(f"Please reload, an error occurred: {str(e)}")
+            st.error(f"An error occurred while fetching data: {str(e)}")
 
 # Custom legend
 st.sidebar.subheader("Price Range Legend")
@@ -153,4 +152,3 @@ for network, color in network_colors.items():
 # Footer
 st.markdown("---")
 st.markdown("Data provided by Dune Analytics")
-
