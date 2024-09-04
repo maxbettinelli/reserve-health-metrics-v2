@@ -8,7 +8,7 @@ st.set_page_config(page_title="RToken Liquidity Analysis", layout="wide")
 # Function to load data
 @st.cache_data
 def load_data():
-    filename = "rtoken_liquidity_08-29.csv"
+    filename = "rtoken_liquidity.csv"
     df = pd.read_csv(filename)
     return df
 
@@ -20,7 +20,7 @@ st.title("RToken Price Depth")
 
 # Melt the DataFrame for plotting
 df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'], 
-                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29'],
+                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4'],
                     var_name='Week', 
                     value_name='Value')
 
@@ -28,7 +28,7 @@ df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'],
 df_melted['Value'] = df_melted['Value'].replace('[\$,]', '', regex=True).astype(float)
 
 # Create a custom order for the weeks
-week_order = ['8/1', '8/8', '8/15', '8/22', '8/29']
+week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4']
 df_melted['Week'] = pd.Categorical(df_melted['Week'], categories=week_order, ordered=True)
 
 # Sort the DataFrame by Week
