@@ -105,7 +105,7 @@ def display_content(df):
 
 # Main execution
 if 'data' not in st.session_state:
-    with st.spinner("Loading initial data... This may take up to 90 seconds."):
+    with st.spinner("Loading initial data... This may take up to 30 seconds."):
         try:
             df = fetch_dune_data(query_id, timeperiod)
             st.session_state.data = df

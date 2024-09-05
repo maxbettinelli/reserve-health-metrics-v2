@@ -67,17 +67,19 @@ def get_morpho_suppliers_count():
 
     # Count suppliers for Ethereum Mainnet
     ethmainnet_suppliers = 0
+    ethmainnet_vaultsupply = 0
     for item in mainnet_response['vaultPositions']['items']:
         if float(item['assetsUsd']) > 5:
             ethmainnet_suppliers += 1
-
+            ethmainnet_vaultsupply += float(item['assetsUsd'])
     # Count suppliers for Base
     base_suppliers = 0
+    base_vaultsupply = 0
     for item in base_response['vaultPositions']['items']:
         if float(item['assetsUsd']) > 5:
             base_suppliers += 1
-
-    return ethmainnet_suppliers, base_suppliers
+            base_vaultsupply += float(item['assetsUsd'])
+    return ethmainnet_suppliers, base_suppliers, ethmainnet_vaultsupply, base_vaultsupply
 
 # Use caching for data fetching and processing functions
 @st.cache_data(ttl=3600)  # Cache for 1 hour
@@ -628,7 +630,7 @@ if st.session_state.data_loaded:
     st.subheader("Morpho Borrowers and Suppliers Data")
 
     # Get supplier counts
-    ethmainnet_suppliers, base_suppliers = get_morpho_suppliers_count()
+    ethmainnet_suppliers, base_suppliers, ethmainnet_vaultsupply, base_vaultsupply = get_morpho_suppliers_count()
 
     # Process the market positions data
     df_positions = st.session_state.df_market_positions.reset_index()
@@ -651,11 +653,13 @@ if st.session_state.data_loaded:
     with col1:
         # st.subheader('ETH Mainnet')
         st.altair_chart(create_borrowers_chart(df_eth, 'ETH Mainnet'), use_container_width=True)
-        st.write(f"Total Mainnet Suppliers in Gauntlet eUSD Core: {ethmainnet_suppliers}")
+        st.write(f" Gauntlet eUSD Core Mainnet Suppliers: {ethmainnet_suppliers}")
+        st.write(f"${ethmainnet_vaultsupply:,.0f} eUSD supplied")
     with col2:
         # st.subheader('Base')
         st.altair_chart(create_borrowers_chart(df_base, 'Base'), use_container_width=True)
-        st.write(f"Total Base Suppliers in Gauntlet eUSD Core: {base_suppliers}")
+        st.write(f"Gauntlet eUSD Core Base Suppliers: {base_suppliers}")
+        st.write(f"${base_vaultsupply:,.0f} eUSD supplied")
 
     st.markdown("---")
     # Morpho Liquidations Section
