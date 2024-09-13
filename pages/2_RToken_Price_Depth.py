@@ -20,7 +20,7 @@ st.title("RToken Price Depth")
 
 # Melt the DataFrame for plotting
 df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'], 
-                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4'],
+                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13'],
                     var_name='Week', 
                     value_name='Value')
 
@@ -28,7 +28,7 @@ df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'],
 df_melted['Value'] = df_melted['Value'].replace('[\$,]', '', regex=True).astype(float)
 
 # Create a custom order for the weeks
-week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4']
+week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13']
 df_melted['Week'] = pd.Categorical(df_melted['Week'], categories=week_order, ordered=True)
 
 # Sort the DataFrame by Week
@@ -72,6 +72,7 @@ st.dataframe(styled_df, use_container_width=True)
 
 if st.checkbox('See Graph'):
     st.image('Liquidity_comparison_9.4.24.png')
+    st.image('Liquidity_comparison_9.13.24.png')
 # Add some explanatory text
 st.markdown("""
 - The chart measures the amount of an RToken you can swap on a DEX Aggregator (Odos) in a single transaction before incurring a 0.5% price impact. 
