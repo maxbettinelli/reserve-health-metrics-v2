@@ -71,8 +71,11 @@ styled_df = df.style.applymap(color_negative_red, subset=['Weekly Change'])
 st.dataframe(styled_df, use_container_width=True)
 
 if st.checkbox('See Graph'):
-    st.image('Liquidity_comparison_9.4.24.png')
-    st.image('Liquidity_comparison_9.13.24.png')
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image('Liquidity_comparison_9.4.24.png', caption='4 September 2024')
+    with col2:
+        st.image('Liquidity_comparison_9.13.24.png', caption='13 September 2024')
 # Add some explanatory text
 st.markdown("""
 - The chart measures the amount of an RToken you can swap on a DEX Aggregator (Odos) in a single transaction before incurring a 0.5% price impact. 
