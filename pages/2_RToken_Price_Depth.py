@@ -20,7 +20,7 @@ st.title("RToken Price Depth")
 
 # Melt the DataFrame for plotting
 df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'], 
-                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13'],
+                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19'],
                     var_name='Week', 
                     value_name='Value')
 
@@ -28,7 +28,7 @@ df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'],
 df_melted['Value'] = df_melted['Value'].replace('[\$,]', '', regex=True).astype(float)
 
 # Create a custom order for the weeks
-week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13']
+week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19']
 df_melted['Week'] = pd.Categorical(df_melted['Week'], categories=week_order, ordered=True)
 
 # Sort the DataFrame by Week
