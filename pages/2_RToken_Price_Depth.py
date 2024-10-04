@@ -20,7 +20,7 @@ st.title("RToken Price Depth")
 
 # Melt the DataFrame for plotting
 df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'], 
-                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19', '9/26'],
+                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19', '9/26', '10/4'],
                     var_name='Week', 
                     value_name='Value')
 
@@ -28,7 +28,7 @@ df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'],
 df_melted['Value'] = df_melted['Value'].replace('[\$,]', '', regex=True).astype(float)
 
 # Create a custom order for the weeks
-week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19', '9/26']
+week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19', '9/26', '10/4']
 df_melted['Week'] = pd.Categorical(df_melted['Week'], categories=week_order, ordered=True)
 
 # Sort the DataFrame by Week
@@ -73,11 +73,11 @@ st.dataframe(styled_df, use_container_width=True)
 if st.checkbox('See Graph'):
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.image('Liquidity_comparison_9.13.24.png', caption='13 September 2024')
-    with col2:
         st.image('Liquidity_comparison_9.19.24.png', caption='19 September 2024')
-    with col3:
+    with col2:
         st.image('Liquidity_comparison_9.26.24.png', caption='26 September 2024')
+    with col3:
+        st.image('Liquidity_comparison_10.4.24.png', caption='4 October 2024')
 
 # Add some explanatory text
 st.markdown("""
