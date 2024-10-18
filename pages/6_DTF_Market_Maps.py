@@ -2,9 +2,13 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime
 
 # Set page configuration
 st.set_page_config(page_title="Base Analysis", layout="wide")
+
+# Get current date
+current_date = datetime.now().strftime("%B %d %Y")
 
 # Load the data
 @st.cache_data
@@ -14,12 +18,12 @@ def load_data():
         df[col] = df[col].str.rstrip('%').astype('float') / 100.0
     df['price'] = df['price'].str.lstrip('$').astype('float')
     df['market_cap'] = df['market_cap'].str.lstrip('$').str.replace(',', '').astype('float')
-    df = df[df['market_cap'] > 0]
+    df = df[df['market_cap'] > 1000000] # change to get market caps above X amount 
     return df
 
 df = load_data()
 
-st.title("Base")
+st.title(f"Base")
 
 # Custom color scale with darker red and green
 color_scale = [
@@ -37,7 +41,7 @@ def create_treemap(df):
             df,
             path=[px.Constant("All"), df.index],
             values='market_cap',
-            color='7d_change',
+            color='24h_change',# Line 44 and 67 should correspond with each other
             hover_data=['symbol', 'price', 'market_cap', '24h_change', '7d_change', '30d_change'],
             color_continuous_scale=color_scale,
             color_continuous_midpoint=0
@@ -46,18 +50,23 @@ def create_treemap(df):
         # Update text and hover info
         fig.update_traces(
             textposition="middle center",
+            texttemplate="<b>%{label}</b>",
             hovertemplate='<b>%{label}</b><br>' +
                           'Market Cap: $%{customdata[2]:,.0f}<br>' +
                           '24h Change: %{customdata[3]:.2%}<br>' +
-                          '7d Change: %{customdata[4]:.2%}<br>' +
-                          '30d Change: %{customdata[5]:.2%}<br>'
+                          'Weekly Change: %{customdata[4]:.2%}<br>' +
+                          'Monthly Change: %{customdata[5]:.2%}<br>'
         )
 
         fig.update_layout(
-            title_text='Base Memecoin Market Cap',
+            title_text=f'Base Memecoins by Market Cap - {current_date}',
             title_x=0,
             width=1000,
-            height=600
+            height=600,
+            coloraxis_colorbar=dict(
+                title="Daily Change", # Line 44 and 67 should correspond with each other
+                tickformat=".0%"
+            )
         )
 
         return fig
@@ -93,7 +102,7 @@ def create_pie_chart(df):
     )])
 
     fig.update_layout(
-        title_text='Market Cap Distribution (Top 10 + Others)',
+        title_text=f'Market Cap Distribution (Top 10 + Others)',
         title_x=0.5,
         width=800,
         height=500
@@ -110,6 +119,6 @@ if st.checkbox('Detailed Base Data', value=True):
     st.dataframe(df)
 
     # Display data statistics
-    st.subheader("Data Statistics")
+    st.subheader(f"Data Statistics - {current_date}")
     st.write(f"Total market cap: ${df['market_cap'].sum():,.2f}")
     st.write(f"Number of coins with $100k+ market cap: {(df['market_cap'] > 100000).sum()}")

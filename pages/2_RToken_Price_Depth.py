@@ -18,18 +18,20 @@ df = load_data()
 # Create the line plot
 st.title("RToken Price Depth")
 
+# Get date columns dynamically
+date_columns = [col for col in df.columns if col not in ['Asset Name', 'Weekly Change']]
+
 # Melt the DataFrame for plotting
 df_melted = df.melt(id_vars=['Asset Name', 'Weekly Change'], 
-                    value_vars=['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19', '9/26', '10/4', '10/9'],
+                    value_vars=date_columns,
                     var_name='Week', 
                     value_name='Value')
 
 # Convert Value column to numeric, removing $ and commas
 df_melted['Value'] = df_melted['Value'].replace('[\$,]', '', regex=True).astype(float)
 
-# Create a custom order for the weeks
-week_order = ['8/1', '8/8', '8/15', '8/22', '8/29', '9/4', '9/13', '9/19', '9/26', '10/4', '10/9']
-df_melted['Week'] = pd.Categorical(df_melted['Week'], categories=week_order, ordered=True)
+# Convert Week to datetime
+df_melted['Week'] = pd.to_datetime(df_melted['Week'], format='%m/%d')
 
 # Sort the DataFrame by Week
 df_melted = df_melted.sort_values('Week')
@@ -45,9 +47,9 @@ fig.update_layout(
     xaxis_title='Date',
     yaxis_title='Liquidity ($)',
     xaxis=dict(
-        tickmode='array',
-        tickvals=week_order,
-        ticktext=week_order
+        tickmode='auto',
+        nticks=10,
+        tickformat='%m/%d'
     )
 )
 

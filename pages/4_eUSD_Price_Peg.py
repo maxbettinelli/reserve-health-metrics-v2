@@ -13,6 +13,7 @@ try:
     dune_api_key = st.secrets["DUNE_API_KEY"]
 except KeyError:
     st.error("Dune API Key not found. Please set the DUNE_API_KEY secret.")
+    
     st.stop()
 
 # Function to fetch data from Dune Analytics
